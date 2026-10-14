@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
-    <el-row :gutter="10">
+    <el-empty v-if="!canViewServer" description="当前账号暂无服务监控查看权限" />
+    <el-row v-else :gutter="10">
       <el-col :span="12" class="card-box">
         <el-card>
           <template #header><Cpu style="width: 1em; height: 1em; vertical-align: middle;" /> <span style="vertical-align: middle;">CPU</span></template>
@@ -167,16 +168,23 @@
 
 <script setup>
 import { getServer } from '@/api/monitor/server'
+import auth from '@/plugins/auth'
 
 const server = ref([]);
 const { proxy } = getCurrentInstance();
+const canViewServer = computed(() => auth.hasPermi('monitor:server:list'));
 
-function getList() {
+async function getList() {
+  if (!canViewServer.value) return;
   proxy.$modal.loading("正在加载服务监控数据，请稍候！");
-  getServer().then(response => {
+  try {
+    const response = await getServer();
     server.value = response.data;
+  } catch {
+    // 请求错误由统一请求处理器提示。
+  } finally {
     proxy.$modal.closeLoading();
-  });
+  }
 }
 
 getList();
