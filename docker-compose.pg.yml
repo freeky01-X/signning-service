@@ -1,56 +1,56 @@
 services:
   # 前端服务
-  ruoyi-frontend:
+  sign-frontend:
     build:
-      context: ./ruoyi-fastapi-frontend
+      context: ./frontend
       dockerfile: Dockerfile
-    image: ruoyi-frontend:latest
-    container_name: ruoyi-frontend
+    image: sign-frontend:latest
+    container_name: sign-frontend
     environment:
       TZ: UTC
     ports:
       - "12580:80"
     volumes:
-      - ./ruoyi-fastapi-frontend/bin/nginx.dockerpg.conf:/etc/nginx/conf.d/default.conf
+      - ./frontend/bin/nginx.dockerpg.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - ruoyi-backend-pg
+      - sign-backend-pg
     networks:
-      - ruoyi-network
+      - sign-network
 
   # 后端服务（PostgreSQL版本）
-  ruoyi-backend-pg:
+  sign-backend-pg:
     build:
-      context: ./ruoyi-fastapi-backend
+      context: ./backend
       dockerfile: Dockerfile.pg
-    image: ruoyi-backend-pg:latest
-    container_name: ruoyi-backend-pg
+    image: sign-backend-pg:latest
+    container_name: sign-backend-pg
     environment:
       TZ: UTC
     ports:
       - "19099:9099"
     depends_on:
-      ruoyi-pg:
+      sign-pg:
         condition: service_healthy
-      ruoyi-redis:
+      sign-redis:
         condition: service_healthy
     networks:
-      - ruoyi-network
+      - sign-network
 
   # PostgreSQL服务
-  ruoyi-pg:
+  sign-pg:
     image: postgres:14
-    container_name: ruoyi-pg
+    container_name: sign-pg
     environment:
       TZ: UTC
       POSTGRES_PASSWORD: root
-      POSTGRES_DB: ruoyi-fastapi
+      POSTGRES_DB: sign-service
       POSTGRES_INITDB_ARGS: --encoding=UTF8 --lc-collate=C --lc-ctype=C
     ports:
       - "15432:5432"
     volumes:
-      - ./ruoyi-fastapi-backend/sql/ruoyi-fastapi-pg.sql:/docker-entrypoint-initdb.d/ruoyi-fastapi-pg.sql
+      - ./backend/sql/pg.sql:/docker-entrypoint-initdb.d/pg.sql
     networks:
-      - ruoyi-network
+      - sign-network
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
@@ -58,15 +58,15 @@ services:
       retries: 30
 
   # Redis服务
-  ruoyi-redis:
+  sign-redis:
     image: redis:latest
-    container_name: ruoyi-redis
+    container_name: sign-redis
     environment:
       TZ: UTC
     ports:
       - "16379:6379"
     networks:
-      - ruoyi-network
+      - sign-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -75,6 +75,6 @@ services:
 
 # 网络配置
 networks:
-  ruoyi-network:
-    name: ruoyi-network
+  sign-network:
+    name: sign-network
     driver: bridge

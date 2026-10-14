@@ -19,7 +19,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: ruoyi-fastapi-backend
+        working-directory: backend
 
     steps:
       - uses: actions/checkout@v5
@@ -30,8 +30,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: |
-            ruoyi-fastapi-backend/requirements.txt
-            ruoyi-fastapi-backend/plugins/ai/plugin.yaml
+            backend/requirements.txt
+            backend/plugins/ai/plugin.yaml
 
       - name: Install dependencies
         run: |

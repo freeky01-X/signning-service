@@ -1,0 +1,83 @@
+services:
+  # 前端服务
+  sign-frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    image: sign-frontend:latest
+    container_name: sign-frontend-test
+    environment:
+      TZ: UTC
+    ports:
+      - "80:80"
+    volumes:
+      - ../frontend/bin/nginx.dockerpg.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - sign-backend-pg
+    networks:
+      - sign-network-test
+
+  # 后端服务（PostgreSQL版本）
+  sign-backend-pg:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.pg
+    image: sign-backend-pg:latest
+    container_name: sign-backend-pg-test
+    ports:
+      - "9099:9099"
+    environment:
+      TZ: UTC
+      TRANSPORT_CRYPTO_ENABLED: "false"
+      TRANSPORT_CRYPTO_MODE: "off"
+    depends_on:
+      sign-pg:
+        condition: service_healthy
+      sign-redis:
+        condition: service_healthy
+    networks:
+      - sign-network-test
+
+  # PostgreSQL服务
+  sign-pg:
+    image: postgres:14
+    container_name: sign-pg-test
+    environment:
+      TZ: UTC
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: sign-fastapi
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --lc-collate=C --lc-ctype=C
+    ports:
+      - "15433:5432"
+    volumes:
+      - ../backend/sql/pg.sql:/docker-entrypoint-initdb.d/01-pg.sql
+      - ./disable_captcha.sql:/docker-entrypoint-initdb.d/02-disable-captcha.sql
+    networks:
+      - sign-network-test
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  # Redis服务
+  sign-redis:
+    image: redis:latest
+    container_name: sign-redis-test
+    environment:
+      TZ: UTC
+    ports:
+      - "16381:6379"
+    networks:
+      - sign-network-test
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+# 网络配置
+networks:
+  sign-network-test:
+    name: sign-network-test
+    driver: bridge

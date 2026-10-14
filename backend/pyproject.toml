@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backend-cli"
+version = "1.10.0"
+description = "sign service backend internal CLI entrypoint"
+requires-python = ">=3.10"
+
+[project.scripts]
+sign = "cli.main:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["cli*"]

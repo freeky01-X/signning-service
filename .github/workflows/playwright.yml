@@ -34,24 +34,24 @@ jobs:
       - name: Create temporary Dockerfile with Python ${{ matrix.python-version }}
         run: |
           # Save original Dockerfile.my
-          cp ruoyi-fastapi-backend/Dockerfile.my ruoyi-fastapi-backend/Dockerfile.my.bak
+          cp backend/Dockerfile.my backend/Dockerfile.my.bak
           # Create temporary Dockerfile with target Python version and default PyPI index
           sed -e "s/FROM python:3.10/FROM python:${{ matrix.python-version }}/g" \
               -e 's| -i https://pypi.tuna.tsinghua.edu.cn/simple||g' \
-              ruoyi-fastapi-backend/Dockerfile.my.bak > ruoyi-fastapi-backend/Dockerfile.my
+              backend/Dockerfile.my.bak > backend/Dockerfile.my
 
       - name: Start services with docker-compose
         run: |
-          cd ruoyi-fastapi-test
+          cd test
           docker compose -f docker-compose.test.my.yml up -d --build
 
       - name: Wait for services to be ready
         run: |
-          cd ruoyi-fastapi-test
+          cd test
           # Wait for backend to be running
-          timeout 180 bash -c 'until docker compose -f docker-compose.test.my.yml ps ruoyi-backend-my | grep -q "Up"; do sleep 5; done'
+          timeout 180 bash -c 'until docker compose -f docker-compose.test.my.yml ps sign-backend-my | grep -q "Up"; do sleep 5; done'
           # Wait for frontend to be running
-          timeout 120 bash -c 'until docker compose -f docker-compose.test.my.yml ps ruoyi-frontend | grep -q "Up"; do sleep 5; done'
+          timeout 120 bash -c 'until docker compose -f docker-compose.test.my.yml ps sign-frontend | grep -q "Up"; do sleep 5; done'
           # Additional wait for services to be fully ready and listening on ports
           sleep 30
           # Check that backend is actually responding on the API endpoint
@@ -67,13 +67,13 @@ jobs:
           # Final check
           if ! curl -f http://localhost:9099/captchaImage > /dev/null 2>&1; then
             echo "Backend service failed to start properly. Checking logs..."
-            docker logs ruoyi-backend-my-test
+            docker logs sign-backend-my-test
             exit 1
           fi
 
       - name: Run tests
         run: |
-          cd ruoyi-fastapi-test
+          cd test
           pip install -r requirements.txt
           playwright install
           pytest -v
@@ -81,14 +81,14 @@ jobs:
       - name: Stop services
         if: always()
         run: |
-          cd ruoyi-fastapi-test
+          cd test
           docker compose -f docker-compose.test.my.yml down
 
       - name: Restore original Dockerfile.my
         if: always()
         run: |
           # Restore original Dockerfile.my after test
-          mv ruoyi-fastapi-backend/Dockerfile.my.bak ruoyi-fastapi-backend/Dockerfile.my
+          mv backend/Dockerfile.my.bak backend/Dockerfile.my
 
   pg-test:
     runs-on: ubuntu-latest
@@ -117,24 +117,24 @@ jobs:
       - name: Create temporary Dockerfile with Python ${{ matrix.python-version }}
         run: |
           # Save original Dockerfile.pg
-          cp ruoyi-fastapi-backend/Dockerfile.pg ruoyi-fastapi-backend/Dockerfile.pg.bak
+          cp backend/Dockerfile.pg backend/Dockerfile.pg.bak
           # Create temporary Dockerfile with target Python version and default PyPI index
           sed -e "s/FROM python:3.10/FROM python:${{ matrix.python-version }}/g" \
               -e 's| -i https://pypi.tuna.tsinghua.edu.cn/simple||g' \
-              ruoyi-fastapi-backend/Dockerfile.pg.bak > ruoyi-fastapi-backend/Dockerfile.pg
+              backend/Dockerfile.pg.bak > backend/Dockerfile.pg
 
       - name: Start services with docker-compose
         run: |
-          cd ruoyi-fastapi-test
+          cd test
           docker compose -f docker-compose.test.pg.yml up -d --build
 
       - name: Wait for services to be ready
         run: |
-          cd ruoyi-fastapi-test
+          cd test
           # Wait for backend to be running
-          timeout 180 bash -c 'until docker compose -f docker-compose.test.pg.yml ps ruoyi-backend-pg | grep -q "Up"; do sleep 5; done'
+          timeout 180 bash -c 'until docker compose -f docker-compose.test.pg.yml ps sign-backend-pg | grep -q "Up"; do sleep 5; done'
           # Wait for frontend to be running
-          timeout 120 bash -c 'until docker compose -f docker-compose.test.pg.yml ps ruoyi-frontend | grep -q "Up"; do sleep 5; done'
+          timeout 120 bash -c 'until docker compose -f docker-compose.test.pg.yml ps sign-frontend | grep -q "Up"; do sleep 5; done'
           # Additional wait for services to be fully ready and listening on ports
           sleep 30
           # Check that backend is actually responding on the API endpoint
@@ -150,13 +150,13 @@ jobs:
           # Final check
           if ! curl -f http://localhost:9099/captchaImage > /dev/null 2>&1; then
             echo "Backend service failed to start properly. Checking logs..."
-            docker logs ruoyi-backend-pg-test
+            docker logs sign-backend-pg-test
             exit 1
           fi
 
       - name: Run tests
         run: |
-          cd ruoyi-fastapi-test
+          cd test
           pip install -r requirements.txt
           playwright install
           pytest -v
@@ -164,11 +164,11 @@ jobs:
       - name: Stop services
         if: always()
         run: |
-          cd ruoyi-fastapi-test
+          cd test
           docker compose -f docker-compose.test.pg.yml down
 
       - name: Restore original Dockerfile.pg
         if: always()
         run: |
           # Restore original Dockerfile.pg after test
-          mv ruoyi-fastapi-backend/Dockerfile.pg.bak ruoyi-fastapi-backend/Dockerfile.pg
+          mv backend/Dockerfile.pg.bak backend/Dockerfile.pg

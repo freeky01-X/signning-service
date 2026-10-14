@@ -1,0 +1,83 @@
+services:
+  # 前端服务
+  sign-frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    image: sign-frontend:latest
+    container_name: sign-frontend-test
+    environment:
+      TZ: UTC
+    ports:
+      - "80:80"
+    volumes:
+      - ../frontend/bin/nginx.dockermy.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - sign-backend-my
+    networks:
+      - sign-network-test
+
+  # 后端服务（MySQL版本）
+  sign-backend-my:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.my
+    image: sign-backend-my:latest
+    container_name: sign-backend-my-test
+    ports:
+      - "9099:9099"
+    environment:
+      TZ: UTC
+      TRANSPORT_CRYPTO_ENABLED: "false"
+      TRANSPORT_CRYPTO_MODE: "off"
+    depends_on:
+      sign-mysql:
+        condition: service_healthy
+      sign-redis:
+        condition: service_healthy
+    networks:
+      - sign-network-test
+
+  # MySQL服务
+  sign-mysql:
+    image: mysql:8.0
+    container_name: sign-mysql-test
+    environment:
+      TZ: UTC
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sign-service
+    ports:
+      - "13307:3306"
+    volumes:
+      - ../backend/sql/sign-service.sql:/docker-entrypoint-initdb.d/01-sign-service.sql
+      - ./disable_captcha.sql:/docker-entrypoint-initdb.d/02-disable-captcha.sql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --skip-character-set-client-handshake=1
+    networks:
+      - sign-network-test
+    healthcheck:
+      test: ["CMD", "bash", "-c", "mysqladmin ping -h localhost -u root -proot && mysql -h localhost -u root -proot -e 'SELECT 1'"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  # Redis服务
+  sign-redis:
+    image: redis:latest
+    container_name: sign-redis-test
+    environment:
+      TZ: UTC
+    ports:
+      - "16380:6379"
+    networks:
+      - sign-network-test
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+# 网络配置
+networks:
+  sign-network-test:
+    name: sign-network-test
+    driver: bridge
